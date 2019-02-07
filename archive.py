@@ -34,7 +34,7 @@ def archive(contacts, now):
             print(archive_msg)
             archive_msg = None
 
-        # Assignment causes arching of contact.
+        # Assignment causes archiving of contact.
         contact.archived = True
         print(f'\t{contact}')
 
