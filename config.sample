@@ -13,3 +13,8 @@ levels =
 # Number of days without a login after which non-members get automatically
 # archived.
 threshold = 60
+
+[accessflag]
+# Comma-delimited list of member levels that should have their access flag set 
+# to true.
+levels = 
