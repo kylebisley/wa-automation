@@ -4,6 +4,7 @@ from archive import archive
 from args import args
 from contacts import Contacts
 from timeout import timeout
+from cancel import autoCancel
 from datetime import datetime, timezone
 from describe import describe
 from approve import auto_approve
@@ -22,6 +23,7 @@ operations = {
         'describe': lambda x: describe(contacts, x),
         'approve' : lambda x: auto_approve(session),
         'timeout' : lambda x: timeout(session, contacts, now),
+        'cancel': lambda x: autoCancel(contacts),
         'discourse_sync': lambda x: sync_group(dc_client, x)}
 
 for op in args.operations:
