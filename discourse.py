@@ -29,10 +29,10 @@ class Discourse:
             del orig_params['api_key']
             del orig_params['api_username']
 
-            if len(orig_params) is not 0:
+            if len(orig_params) != 0:
                 debug += f'\n\tquery: {orig_params}'
 
-            if len(data) is not 0:
+            if len(data) != 0:
                 debug += f'\n\tbody: {data}'
 
             print(debug, file = sys.stderr)
@@ -93,7 +93,7 @@ class Discourse:
             'filter': email,
             'show_emails': 'true'})
 
-        if len(users) is 0:
+        if len(users) == 0:
             return None
 
         for user in users:
@@ -120,7 +120,7 @@ class Discourse:
         return [user['id'] for user in users]
 
     def _pass_group_users(self, verb, group, user_ids):
-        if len(user_ids) is 0:
+        if len(user_ids) == 0:
             return
 
         group_id = self.request('GET', f'/groups/{group}.json')['group']['id']
@@ -147,7 +147,7 @@ class Discourse:
         for contact in contacts:
             user = self.find_by_email(contact.email)
 
-            if user is not None:
+            if user != None:
                 to_add.append(user['id'])
 
         for user_id in self.group_user_ids(group):
