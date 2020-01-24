@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from describe import describe
 from approve import auto_approve
 from session import Session
+from application import auto_applications
 from discourse import Discourse, sync_group
 import sys
 from tzlocal import get_localzone
@@ -24,6 +25,7 @@ operations = {
         'approve' : lambda x: auto_approve(session),
         'timeout' : lambda x: timeout(session, contacts, now),
         'cancel': lambda x: autoCancel(contacts),
+        'applications' : lambda x: auto_applications(session, contacts, now),
         'discourse_sync': lambda x: sync_group(dc_client, x)}
 
 for op in args.operations:
