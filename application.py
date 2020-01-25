@@ -11,6 +11,8 @@
 from pprint import pprint
 from datetime import datetime
 from config import config
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 import pdb
 
 def auto_applications(session, contacts, now):
@@ -18,26 +20,46 @@ def auto_applications(session, contacts, now):
     events = session.request('GET', temp)
     #pprint(events)
     for event in events['Events']:
-        if (event['Name'] == 'Applicants Evening'):
-            print('************************************************************')           
-            #pprint(event)
-            print(event['Name'])
-            temp = f'events/{event["Id"]}'
-            event_details = session.request('GET', temp)
-            print('************************************************************')
-            #pprint(event_details)
+        event_date = datetime.strptime(event['EndDate'],'%Y-%m-%dT%H:%M:%S%z')
+        if ((event['Name'] == 'Applicants Evening')  & 
+                (event_date > (now - relativedelta(months=1)))):
+            print('now-timedelta')
+            print(now - relativedelta(months=1))
+
+            print(event['EndDate'])
+            # 
+            # print("event_date")
+            # print(type(event_date))
+            # print(event_date)
+            # print('*****')
+
+            # event_date = event_date - timedelta(30)
+            # print("event_date - timedelta(30)")
+            # print(event_date)
+            # print()
+            # print()
+            # temp = f'events/{event["Id"]}'
+            # event_details = session.request('GET', temp)
+            # print('************************************************************')
+            # #pprint(event_details)
             
-            temp =f'eventregistrations/?eventId={event["Id"]}'
-            event_reg = session.request('GET', temp)
-            print('************************************************************')
-            print('************************************************************')
-            pprint(event_reg)
-            applications = []
-            for registration in event_reg:
-                if registration['IsCheckedIn']:
-                    print(registration['Contact']['Name'])
-                    applications.append(registration['Contact']['Id'])
-                    print('Is Checked IN!!!!!!!')
+            # temp =f'eventregistrations/?eventId={event["Id"]}'
+            # event_reg = session.request('GET', temp)
+            # print('************************************************************')
+            # print('************************************************************')
+            # #pprint(event_reg) 
+            # applications = []
+            # print("RSVP'ed")
+            # for registration in event_reg:
+            #     print(registration['Contact']['Name'])
+            #     if registration['IsCheckedIn']:
+            #         #print(registration['Contact']['Name'])
+            #         applications.append(registration['Contact']['Id'])
+            # print('Is Checked IN!!!!!!!')
+            # for i in applications:
+            #     print(i)
+            
+            
     
 
     print('onewards and upwards')
