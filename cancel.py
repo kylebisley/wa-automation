@@ -7,15 +7,13 @@ from session import Session
 import pdb 
 import json
 
-
-
 def autoCancel(contacts):
     
     # Build a set of members names found in the Cancel my Membership
     # membership level
     cancel_set = {""}
     for contact in contacts.getlevel("Cancel My Membership"):
-        # contact.archived = True
+        contact.archived = True
         cancel_set.add(contact.name)
 
     # concatenates the list of members to cancel to the draft from file
