@@ -56,7 +56,9 @@ def timeout(session, contacts, now):
             #Steps to cancel application and archive contact as new applicant
             send_timeout_mail(session, contact, contact_id)
             void_invoice(session, invoice)
+            # probably want to change the order of these two
             cancel_application(session, contact_id)
+            # probably want to do before canceling application (might not need to cancel application?)
             assign_new_applicant(session, contact_id)
             approve_membership(session, contact_id)
             contact.archived = True

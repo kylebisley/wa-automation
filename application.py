@@ -1,14 +1,7 @@
-# find appropiate new applicants night
-    #pull list of New Applicant Nights
-    #if event was held this month
-    #pull attendance list
-# get list of those in attendance
-# get list of level: map them to applying to fields
-# for each attendie 
-    # set to requested level
-    # set pending new
-    # generate invoice
-    # email invoice
+'''To be run on the first of the month. For every attendant of New Applicant Night
+of the previous month the following actions are performed. 1)level is set to
+Applying for field choice. 2)Invoice is changed to include only Membership dues and
+Access card. 3)application_approved email is sent to inform them of the invoice'''
 import json
 from pprint import pprint
 from datetime import datetime
@@ -18,74 +11,121 @@ from dateutil.relativedelta import relativedelta
 from electronic_mail import electronic_mail
 from email_recipient import email_recipient
 import pdb
-# To be run once a month at the end of the month. Generates an application for each member who attended 
-# this months Applicants Night. 
+
 def applying_for(contact):
-    '''Returns the level id for level coresponding to the "Applying for" field if field not found or is type None returns the id for Regular Membership'''
-    for i in contact['FieldValues']:
-        if (i['FieldName'] == 'What are you applying for?'):
+    '''Returns the level id "Applying for" field. If field not found
+    or is type None return id for Regular Membership'''
+    #pdb.set_trace()
+    for field in contact['FieldValues']:
+        if field['FieldName'] == 'What are you applying for?':
             print('************************************************************')
             level_map = {'Regular membership': '1113399',
-                        'Reduced rate as a student': '1113401',
-                        'Reduced rate for financial reasons': '1113401',
-                        'Schneider Corporate Membership':'1113400',
-                        'Annual membership': '1113394'}
-            # if Empty then level id is 1113395 (cancel my membership)
-            # pdb.set_trace()
-            print(contact['Id'])
-            if i['Value'] is None:
+                         'Reduced rate as a student': '1113401',
+                         'Reduced rate for financial reasons': '1113401',
+                         'Schneider Corporate Membership':'1113400',
+                         'Annual membership': '1113394'}
+            print(contact['DisplayName'], contact['Id'])
+            if field['Value'] is None:
+                print("Is None: Setting to Regular Membership")
+                print("         -Regular ")
                 return '1113399'
             else:
-                return level_map.get(i['Value']['Label'], '1113395')
-    return '1113399'
+                print("Else: Found ApplyingTo and setting to it")
+                print("      -" + field['Value']['Label'])
+                #return level_map.get(i['Value']['Label'], '1113395')
+                return level_map.get(field['Value']['Label'])
+    #right now it just sets them to regular membership and continues
+    # this case represents a contact in a level other than new applicant
+    # this should be logged and the rest of the actions for the contact 
+    # should be skipped. 
+    return 'Already set'
+
+def get_applications(event_reg, contacts):
+    # '''Returns list of Id's of contacts who's applications should be processed'''
+    applications = []
+    for registration in event_reg:
+        if registration['IsCheckedIn']:
+            applications.append(contacts.list[registration['Contact']['Id']])
+    return applications
+
+def set_membership(session, contact):
+    #'''Changes membership to level returned by applying_for'''
+    new_level = applying_for(contact)
+    if new_level == 'Already set':
+        print("Already set")
+        return False
+
+    edit_dic = {"Id": contact["Id"],
+                "MembershipEnabled" : "True",
+                "MembershipLevel" : {"Id" : new_level},
+                "Status" : "PendingNew"}
+    temp = f'contacts/{contact["Id"]}'
+    response = session.request('PUT', temp, data=edit_dic)
+    return True
+
+def edit_invoice(session, contact_id):
+    #'''Sets invoice to have only membership cost and Card cost.'''
+    temp = f'invoices?contactId={contact_id}'
+    invoices = session.request('GET', temp)
+
+    for invoice in invoices['Invoices']:
+        if invoice['OrderType'] == 'MembershipApplication':
+
+            temp = f'invoices/{invoice["Id"]}'
+            invoice = session.request('GET', temp)
+
+            order_details = invoice['OrderDetails']
+            invoice_update = {'Notes': 'Access Card: Fee to VITP park security for new card.',
+                              'Taxes': None,
+                              'Value': 11.20}
+            for line_item in order_details:
+                if line_item['OrderDetailType'] == 'MemberLevel':
+                    invoice_data = {'DocumentNumber': invoice['DocumentNumber'],
+                                    'Id': invoice['Id'],
+                                    'OrderDetails':[line_item, invoice_update]}
+
+            temp = f'invoices/{invoice["Id"]}'
+            response = session.request('PUT', temp, data=invoice_data)
+
+def send_invoice_mail(session, contact):
+    with open('./emails/application_approved.txt', 'r') as draft:
+        email_body = draft.read()
+    email_body.format(contact.name)
+    recipient = email_recipient(contact.ID, contact, 0)
+
+    # constructs electronic_mail object and converts object to json
+    mail = electronic_mail('Makerspace Application Approved', email_body, [recipient])
+    j_mail = json.dumps(mail, default=electronic_mail.convert_to_dic)
+    # API call to send email
+    session.request('POST', 'email/SendEmail', rpc=True, data=json.loads(j_mail))
 
 def auto_applications(session, contacts, now):
+    ''' To be run once a month on the first day of the month.
+    Generates an application for each member who attended this
+    months Applicants Night. '''
     temp = f'events?'
     events = session.request('GET', temp)
-    #pprint(events)
-    for event in events['Events']:
-        event_date = datetime.strptime(event['EndDate'],'%Y-%m-%dT%H:%M:%S%z')
-        #feb test
-        soon = datetime.strptime('2020-03-3T20:30:00-08:00','%Y-%m-%dT%H:%M:%S%z')
 
-        if ((event['Name'] == 'Applicants Evening')  & 
-                 (event_date.month == now.month)):
-            
-            temp =f'eventregistrations/?eventId={event["Id"]}'
+    for event in events['Events']:
+        event_date = datetime.strptime(event['EndDate'], '%Y-%m-%dT%H:%M:%S%z')
+        last_month = now + relativedelta(months=-1)
+        if ((event['Name'] == 'Applicants Evening')
+                & (event_date.month == last_month.month)):
+
+            temp = f'eventregistrations/?eventId={event["Id"]}'
             event_reg = session.request('GET', temp)
 
-            applications = []
-            for registration in event_reg:
-                if registration['IsCheckedIn']:
-                    applications.append(contacts.list[registration['Contact']['Id']])
+            applications = get_applications(event_reg, contacts)
+
             for application in applications:
-                temp =f'contacts/{application.ID}'
+                temp = f'contacts/{application.ID}'
                 contact = session.request('GET', temp)
-
-                new_level = applying_for(contact)
-
-                edit_dic ={
-                            "Id": contact["Id"],
-                            "MembershipEnabled" : "True",
-                            "MembershipLevel" : {"Id" : new_level},
-                            "Status" : "PendingNew"
-                            }
-                temp = f'contacts/{contact["Id"]}'
-                response = session.request('PUT', temp, data=edit_dic)
+                change = set_membership(session, contact)
                 
-                #send email 
-                with open('./emails/application_approved.txt', 'r') as draft:
-                    email_body = draft.read()
-                contact = contacts.get_by_id(contact['Id'])
-                email_body.format(contact.name)
+                # when false email and invoice edit is unnecessary
+                if change:
+                    edit_invoice(session, contact['Id']) #add door card to invoice
 
-                recipient = email_recipient(contact.ID, contact, 0)
-
-                # constructs electronic_mail object and converts object to json
-                mail = electronic_mail('Makerspace Application Approved', email_body, [recipient])
-                j_mail = json.dumps(mail, default=electronic_mail.convert_to_dic)
-
-                # API call to send email
-                contacts.session.request('POST', 'email/SendEmail', rpc=True, data=json.loads(j_mail))
-
-    print('onewards and upwards')
+                    #send email
+                    contact = contacts.get_by_id(contact['Id'])
+                    send_invoice_mail(session, contact)
