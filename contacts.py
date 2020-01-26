@@ -15,6 +15,12 @@ class Contacts:
 
     def get(self, ID):
         return self.list[ID] if ID in self.list else None
+    
+    def get_by_id(self, Id):
+        for contact in self.list.values():
+            if contact.ID == Id:
+                return contact
+        return None
 
     def find(self, email):
         for contact in self.list.values():
