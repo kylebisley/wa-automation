@@ -3,45 +3,32 @@ of the previous month the following actions are performed. 1)level is set to
 Applying for field choice. 2)Invoice is changed to include only Membership dues and
 Access card. 3)application_approved email is sent to inform them of the invoice'''
 import json
-from pprint import pprint
 from datetime import datetime
-from config import config
-from datetime import timedelta
+# from config import config
+# from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from electronic_mail import electronic_mail
 from email_recipient import email_recipient
-import pdb
 
 def applying_for(contact):
     '''Returns the level id "Applying for" field. If field not found
     or is type None return id for Regular Membership'''
-    #pdb.set_trace()
+
     for field in contact['FieldValues']:
         if field['FieldName'] == 'What are you applying for?':
-            print('************************************************************')
             level_map = {'Regular membership': '1113399',
                          'Reduced rate as a student': '1113401',
                          'Reduced rate for financial reasons': '1113401',
                          'Schneider Corporate Membership':'1113400',
                          'Annual membership': '1113394'}
-            print(contact['DisplayName'], contact['Id'])
             if field['Value'] is None:
-                print("Is None: Setting to Regular Membership")
-                print("         -Regular ")
                 return '1113399'
             else:
-                print("Else: Found ApplyingTo and setting to it")
-                print("      -" + field['Value']['Label'])
-                #return level_map.get(i['Value']['Label'], '1113395')
                 return level_map.get(field['Value']['Label'])
-    #right now it just sets them to regular membership and continues
-    # this case represents a contact in a level other than new applicant
-    # this should be logged and the rest of the actions for the contact 
-    # should be skipped. 
     return 'Already set'
 
 def get_applications(event_reg, contacts):
-    # '''Returns list of Id's of contacts who's applications should be processed'''
+    '''Returns list of Id's of contacts who's applications should be processed'''
     applications = []
     for registration in event_reg:
         if registration['IsCheckedIn']:
@@ -49,10 +36,9 @@ def get_applications(event_reg, contacts):
     return applications
 
 def set_membership(session, contact):
-    #'''Changes membership to level returned by applying_for'''
+    '''Changes membership to level returned by applying_for'''
     new_level = applying_for(contact)
     if new_level == 'Already set':
-        print("Already set")
         return False
 
     edit_dic = {"Id": contact["Id"],
@@ -60,11 +46,11 @@ def set_membership(session, contact):
                 "MembershipLevel" : {"Id" : new_level},
                 "Status" : "PendingNew"}
     temp = f'contacts/{contact["Id"]}'
-    response = session.request('PUT', temp, data=edit_dic)
+    session.request('PUT', temp, data=edit_dic)
     return True
 
 def edit_invoice(session, contact_id):
-    #'''Sets invoice to have only membership cost and Card cost.'''
+    '''Sets invoice to have only membership cost and Card cost.'''
     temp = f'invoices?contactId={contact_id}'
     invoices = session.request('GET', temp)
 
@@ -85,9 +71,10 @@ def edit_invoice(session, contact_id):
                                     'OrderDetails':[line_item, invoice_update]}
 
             temp = f'invoices/{invoice["Id"]}'
-            response = session.request('PUT', temp, data=invoice_data)
+            session.request('PUT', temp, data=invoice_data)
 
 def send_invoice_mail(session, contact):
+    '''Sends email to new member informing them of outstanding invoice'''
     with open('./emails/application_approved.txt', 'r') as draft:
         email_body = draft.read()
     email_body.format(contact.name)
@@ -121,11 +108,9 @@ def auto_applications(session, contacts, now):
                 temp = f'contacts/{application.ID}'
                 contact = session.request('GET', temp)
                 change = set_membership(session, contact)
-                
                 # when false email and invoice edit is unnecessary
                 if change:
                     edit_invoice(session, contact['Id']) #add door card to invoice
-
                     #send email
                     contact = contacts.get_by_id(contact['Id'])
                     send_invoice_mail(session, contact)
