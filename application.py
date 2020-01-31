@@ -114,3 +114,8 @@ def auto_applications(session, contacts, now):
                     #send email
                     contact = contacts.get_by_id(contact['Id'])
                     send_invoice_mail(session, contact)
+
+
+#when schneider needs extra 'approve' api call use data object to construct if statement to check for schneider and then make call from if statement
+
+
