@@ -1,0 +1,30 @@
+[server]
+api = https://api.wildapricot.org
+auth = https://oauth.wildapricot.org/auth/token
+version = v2.1
+
+[client]
+# The organization account ID, which can be found via the `/accounts` endpoint.
+account-id = 252870
+# API key configured at wildapricot.org/admin/settings/integration/authorized-applications/
+secret = dtxbveey0qmezepjhznn8m9cu8rkyu  
+
+[archive]
+# Comma-delimited list of member levels to auto-archive alongside non-members.
+levels = 
+# Number of days without a login after which non-members get automatically
+# archived.
+threshold = 60
+
+[auto-approve]
+# Name of saved search that returns members to be approved
+search_name = list-of-members-to-approve
+
+[application_stale]
+# Number of days before canceling an application invoice 
+timeout = 60
+
+
+[cancel]
+# Recipient information for VITP security desk
+id = 53359541
