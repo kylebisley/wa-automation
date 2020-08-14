@@ -13,14 +13,14 @@ from email_recipient import email_recipient
 def applying_for(contact):
     '''Returns the level id "Applying for" field. If field not found
     or is type None return id for Regular Membership'''
-
+    
     for field in contact['FieldValues']:
         if field['FieldName'] == 'What are you applying for?':
             level_map = {'Regular membership': '1113399',
-                         'Reduced rate as a student': '1113401',
-                         'Reduced rate for financial reasons': '1113401',
-                         'Schneider Corporate Membership':'1113400',
-                         'Annual membership': '1113394'}
+                        'Reduced rate as a student': '1113401',
+                        'Reduced rate for financial reasons': '1113401',
+                        'Schneider Corporate Membership':'1113400',
+                        'Annual membership': '1113394'}
             if field['Value'] is None:
                 return '1113399'
             else:
@@ -62,8 +62,8 @@ def edit_invoice(session, contact_id):
 
             order_details = invoice['OrderDetails']
             invoice_update = {'Notes': 'Access Card: Fee to VITP park security for new card.',
-                              'Taxes': None,
-                              'Value': 11.20}
+                            'Taxes': None,
+                            'Value': 11.20}
             for line_item in order_details:
                 if line_item['OrderDetailType'] == 'MemberLevel':
                     invoice_data = {'DocumentNumber': invoice['DocumentNumber'],
